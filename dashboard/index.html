@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shamiri Health — Google Ads Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#f8fafc;color:#1e293b;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5}
+  .app{max-width:1100px;margin:0 auto;padding:1.5rem}
+  h1{font-size:1.5rem;font-weight:800;color:#1e3a5f}
+  h2{font-size:1rem;font-weight:700;color:#1e3a5f;margin-bottom:.75rem}
+  h3{font-size:.85rem;font-weight:700;color:#334155;margin-bottom:.5rem}
+  .subtitle{color:#64748b;font-size:.78rem;margin:.2rem 0 1.5rem}
+  .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.6rem;margin-bottom:1.25rem}
+  .kpi{background:#ffffff;border-radius:8px;padding:.75rem;border-top:3px solid var(--c);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .kpi-val{font-size:1.1rem;font-weight:700;color:var(--c);margin:.2rem 0}
+  .kpi-label{font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
+  .kpi-sub{font-size:.65rem;color:#94a3b8}
+  .tabs{display:flex;gap:.4rem;margin-bottom:.75rem;flex-wrap:wrap}
+  .tab{padding:.35rem .9rem;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;font-size:.75rem;font-weight:600;background:#ffffff;color:#475569;transition:all .2s}
+  .tab:hover{background:#f1f5f9;border-color:#cbd5e1}
+  .tab.active{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
+  .panel{background:#ffffff;border-radius:10px;padding:1.25rem;display:none;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .panel.active{display:block}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem}
+  .card{background:#f8fafc;border-radius:8px;padding:.9rem;border:1px solid #e2e8f0}
+  .card-red{border-left:3px solid #dc2626}
+  .card-yellow{border-left:3px solid #d97706}
+  .card-green{border-left:3px solid #059669}
+  .card-blue{border-left:3px solid #2563eb}
+  .card-cyan{border-left:3px solid #0891b2}
+  .tag{display:inline-block;border-radius:4px;padding:1px 7px;font-size:.68rem;font-weight:700;margin-left:.4rem}
+  .tag-red{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+  .tag-yellow{background:#fffbeb;color:#d97706;border:1px solid #fde68a}
+  .tag-green{background:#f0fdf4;color:#059669;border:1px solid #bbf7d0}
+  .tag-blue{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+  .tag-cyan{background:#ecfeff;color:#0891b2;border:1px solid #a5f3fc}
+  table{width:100%;border-collapse:collapse;font-size:.78rem}
+  th{padding:.4rem .6rem;text-align:left;color:#64748b;font-weight:600;border-bottom:2px solid #e2e8f0}
+  td{padding:.4rem .6rem;border-bottom:1px solid #f1f5f9;color:#334155}
+  tr:nth-child(even) td{background:#f8fafc}
+  .chart-wrap{position:relative;height:240px;margin:.75rem 0}
+  .alert{border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.8rem;line-height:1.6}
+  .alert-red{background:#fef2f2;border-left:3px solid #dc2626;color:#991b1b}
+  .alert-yellow{background:#fffbeb;border-left:3px solid #d97706;color:#92400e}
+  .alert-green{background:#f0fdf4;border-left:3px solid #059669;color:#166534}
+  .alert-blue{background:#eff6ff;border-left:3px solid #2563eb;color:#1e3a8a}
+  .timeline{display:flex;flex-direction:column;gap:0}
+  .tl-item{display:grid;grid-template-columns:140px 16px 1fr;gap:0 .75rem;align-items:start}
+  .tl-date{color:#64748b;font-size:.72rem;padding:.7rem 0;text-align:right}
+  .tl-line{display:flex;flex-direction:column;align-items:center}
+  .tl-dot{width:12px;height:12px;border-radius:50%;margin-top:.75rem;flex-shrink:0;z-index:1}
+  .tl-connector{width:2px;background:#e2e8f0;flex:1;min-height:20px}
+  .tl-content{background:#f8fafc;border-radius:8px;padding:.7rem .9rem;margin:.4rem 0;border-left:3px solid var(--bc);border:1px solid #e2e8f0;border-left:3px solid var(--bc)}
+  .tl-title{font-weight:700;font-size:.82rem;color:#1e293b;margin-bottom:.25rem}
+  .tl-body{font-size:.75rem;color:#475569;line-height:1.5}
+  .tl-changes{margin-top:.4rem;display:flex;flex-direction:column;gap:.2rem}
+  .tl-change{font-size:.72rem;padding:.25rem .5rem;background:#f1f5f9;border-radius:4px;color:#475569}
+  .tl-change span{color:#1e293b;font-weight:600}
+  .impact{display:inline-block;margin-top:.35rem;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:4px}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid #f1f5f9}
+  .stat-row:last-child{border-bottom:none}
+  .stat-label{color:#64748b;font-size:.78rem}
+  .stat-val{font-weight:700;font-size:.82rem}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+  .progress-bar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-top:4px}
+  .progress-fill{height:100%;border-radius:3px}
+  footer{text-align:center;color:#94a3b8;font-size:.68rem;margin-top:2rem;padding-top:1rem;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem">
+    <div>
+      <h1>Shamiri Health — Google Ads Analysis</h1>
+      <p class="subtitle">Jan 2025 – Feb 2026 · Search + PMax · All sign-up conversions · USD · Data as of Feb 26, 2026</p>
+    </div>
+    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.5rem 1rem;font-size:.72rem;color:#9a3412">
+      <strong>Note:</strong> Conversions = sign-ups, not purchases<br>Purchase tracking live from Feb 24, 2026
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi" style="--c:#2563eb"><div class="kpi-label">Total Spend</div><div class="kpi-val">$7,243</div><div class="kpi-sub">14 months</div></div>
+    <div class="kpi" style="--c:#7c3aed"><div class="kpi-label">Total Impressions</div><div class="kpi-val">1.29M</div><div class="kpi-sub">all campaigns</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kpi-label">Sign-up Convs</div><div class="kpi-val">37,617</div><div class="kpi-sub">not purchases</div></div>
+    <div class="kpi" style="--c:#d97706"><div class="kpi-label">Avg ROAS</div><div class="kpi-val">11.57x</div><div class="kpi-sub">sign-up ROAS</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kpi-label">Avg CPC</div><div class="kpi-val">$0.04</div><div class="kpi-sub">blended</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kpi-label">Search Lost IS</div><div class="kpi-val">~57%</div><div class="kpi-sub">lost to budget</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview')">Overview</button>
+    <button class="tab" onclick="showTab('campaigns')">Search vs PMax</button>
+    <button class="tab" onclick="showTab('keywords')">Keywords</button>
+    <a href="../funnel/" class="tab" style="text-decoration:none">Funnel Analysis</a>
+    <button class="tab" onclick="showTab('timeline')">Change History</button>
+    <button class="tab" onclick="showTab('collapse')">The Collapse</button>
+    <button class="tab" onclick="showTab('actions')">Action Plan</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="tab-overview" class="panel active">
+    <div class="two-col">
+      <div>
+        <h2>Monthly Spend — Search vs PMax</h2>
+        <div class="chart-wrap"><canvas id="spendChart"></canvas></div>
+      </div>
+      <div>
+        <h2>Monthly ROAS — Search vs PMax</h2>
+        <div class="chart-wrap"><canvas id="roasChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="card card-green">
+        <h3>PMax Summary</h3>
+        <div class="stat-row"><span class="stat-label">Total Spend</span><span class="stat-val" style="color:#059669">$2,353</span></div>
+        <div class="stat-row"><span class="stat-label">Sign-up Convs</span><span class="stat-val">31,506</span></div>
+        <div class="stat-row"><span class="stat-label">Conv Value</span><span class="stat-val">$65,361</span></div>
+        <div class="stat-row"><span class="stat-label">ROAS</span><span class="stat-val" style="color:#059669">27.78x</span></div>
+        <div class="stat-row"><span class="stat-label">Avg CPC</span><span class="stat-val">$0.02</span></div>
+        <div class="stat-row"><span class="stat-label">Avg CR</span><span class="stat-val">29.76%</span></div>
+      </div>
+      <div class="card card-blue">
+        <h3>Search Summary</h3>
+        <div class="stat-row"><span class="stat-label">Total Spend</span><span class="stat-val" style="color:#2563eb">$4,890</span></div>
+        <div class="stat-row"><span class="stat-label">Sign-up Convs</span><span class="stat-val">6,111</span></div>
+        <div class="stat-row"><span class="stat-label">Conv Value</span><span class="stat-val">$18,426</span></div>
+        <div class="stat-row"><span class="stat-label">ROAS</span><span class="stat-val" style="color:#2563eb">3.77x</span></div>
+        <div class="stat-row"><span class="stat-label">Avg CPC</span><span class="stat-val">$0.08</span></div>
+        <div class="stat-row"><span class="stat-label">Avg CR</span><span class="stat-val">10.07%</span></div>
+      </div>
+      <div class="card card-yellow">
+        <h3>Key Context</h3>
+        <div class="alert alert-yellow" style="margin:0;font-size:.75rem">
+          <strong>PMax's 27x ROAS is misleading.</strong> A 51–54% CR in May–Jun is impossible for real purchases. PMax was farming cheap sign-ups — not buyers. Search's lower numbers reflect actual buyer intent more accurately. The real comparison happens now with purchase tracking live.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMPAIGNS -->
+  <div id="tab-campaigns" class="panel">
+    <div class="two-col">
+      <div>
+        <h2>Conversion Volume by Month</h2>
+        <div class="chart-wrap"><canvas id="convsChart"></canvas></div>
+      </div>
+      <div>
+        <h2>Conversion Rate % by Month</h2>
+        <div class="chart-wrap"><canvas id="crChart"></canvas></div>
+      </div>
+    </div>
+    <div class="alert alert-red">
+      <strong>The Budget Starvation Problem:</strong> Search ran on $12/day and lost 55–89% of eligible impressions to budget all year. PMax had $15/day and lost only 3–11%. You were never comparing equal campaigns. Search was fighting with one hand tied behind its back the entire time. This alone explains most of the apparent performance gap.
+    </div>
+    <div class="two-col" style="margin-top:1rem">
+      <div>
+        <h2>Search Lost Impression Share (Budget %)</h2>
+        <div class="chart-wrap"><canvas id="isChart"></canvas></div>
+      </div>
+      <div class="card" style="margin-top:0">
+        <h3>Search IS Lost by Month</h3>
+        <table>
+          <thead><tr><th>Month</th><th>Lost IS</th><th>Impact</th></tr></thead>
+          <tbody>
+            <tr><td>Jan 25</td><td>54.71%</td><td><span class="tag tag-yellow">High</span></td></tr>
+            <tr><td>Feb 25</td><td>40.67%</td><td><span class="tag tag-yellow">High</span></td></tr>
+            <tr><td>Mar 25</td><td>37.98%</td><td><span class="tag tag-yellow">Medium</span></td></tr>
+            <tr><td>Apr 25</td><td>39.47%</td><td><span class="tag tag-yellow">High</span></td></tr>
+            <tr><td>May 25</td><td>76.15%</td><td><span class="tag tag-red">Critical</span></td></tr>
+            <tr><td>Jun 25</td><td>34.52%</td><td><span class="tag tag-yellow">Medium</span></td></tr>
+            <tr><td>Jul 25</td><td>62.11%</td><td><span class="tag tag-red">Critical</span></td></tr>
+            <tr><td>Aug 25</td><td>73.23%</td><td><span class="tag tag-red">Critical</span></td></tr>
+            <tr><td>Sep 25</td><td>79.00%</td><td><span class="tag tag-red">Critical</span></td></tr>
+            <tr><td>Oct 25</td><td>89.29%</td><td><span class="tag tag-red">Critical</span></td></tr>
+            <tr><td>Nov 25</td><td>83.02%</td><td><span class="tag tag-red">Critical</span></td></tr>
+            <tr><td>Dec 25</td><td>78.89%</td><td><span class="tag tag-red">Critical</span></td></tr>
+            <tr><td>Jan 26</td><td>84.97%</td><td><span class="tag tag-red">Critical</span></td></tr>
+            <tr><td>Feb 26</td><td>59.98%</td><td><span class="tag tag-red">Critical</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEYWORDS -->
+  <div id="tab-keywords" class="panel">
+    <div class="alert alert-yellow" style="margin-bottom:1rem">
+      <strong>Critical finding:</strong> All 58 keywords are broad match in a single ad group. Currency shows USD suggesting possible global targeting. Kenya-specific keywords convert at 2–3x the rate of generic terms.
+    </div>
+    <div class="two-col" style="margin-bottom:1rem">
+      <div>
+        <h2>Kenya Keywords — Top Performers</h2>
+        <table>
+          <thead><tr><th>Keyword</th><th>CTR</th><th>CR%</th><th>ROAS</th></tr></thead>
+          <tbody>
+            <tr><td><strong>therapist nairobi</strong></td><td>20.80%</td><td style="color:#059669;font-weight:700">28.49%</td><td style="color:#059669">5.29x</td></tr>
+            <tr><td><strong>online therapy kenya</strong></td><td>10.62%</td><td style="color:#059669;font-weight:700">26.84%</td><td style="color:#d97706">3.67x</td></tr>
+            <tr><td><strong>affordable therapists nairobi</strong></td><td>16.74%</td><td style="color:#059669;font-weight:700">21.96%</td><td style="color:#d97706">4.80x</td></tr>
+            <tr><td>psychologist nairobi</td><td>10.16%</td><td>19.23%</td><td>3.36x</td></tr>
+            <tr><td>therapy kenya</td><td>5.48%</td><td>15.12%</td><td>3.56x</td></tr>
+            <tr><td colspan="4" style="color:#94a3b8;font-size:.72rem;padding-top:.5rem">vs campaign avg CR: 10.08%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h2>Hidden Gems — Underinvested</h2>
+        <table>
+          <thead><tr><th>Keyword</th><th>ROAS</th><th>Spend</th><th>Signal</th></tr></thead>
+          <tbody>
+            <tr><td>counseling help</td><td style="color:#059669;font-weight:700">23.6x</td><td>$2.88</td><td><span class="tag tag-green">Scale now</span></td></tr>
+            <tr><td>better health online</td><td style="color:#059669;font-weight:700">18.1x</td><td>$1.22</td><td><span class="tag tag-green">Scale now</span></td></tr>
+            <tr><td>i need a therapist now</td><td style="color:#059669;font-weight:700">13.7x</td><td>$1.68</td><td><span class="tag tag-green">Urgent intent</span></td></tr>
+            <tr><td>mental health online therapy</td><td style="color:#059669;font-weight:700">8.71x</td><td>$20.33</td><td><span class="tag tag-cyan">Increase bid</span></td></tr>
+            <tr><td>online couples therapy</td><td style="color:#059669;font-weight:700">8.20x</td><td>$45.37</td><td><span class="tag tag-cyan">Increase bid</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <h2>Negative Keywords to Add Immediately</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem">
+      <div class="card card-red">
+        <h3 style="color:#dc2626">Zero Intent</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem">
+          <span class="tag tag-red">free therapy</span><span class="tag tag-red">free counselling</span><span class="tag tag-red">free mental health</span><span class="tag tag-red">NGO counselling</span><span class="tag tag-red">volunteer</span><span class="tag tag-red">crisis helpline</span>
+        </div>
+      </div>
+      <div class="card card-yellow">
+        <h3 style="color:#d97706">Wrong Category</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem">
+          <span class="tag tag-yellow">betterhelp</span><span class="tag tag-yellow">meditation app</span><span class="tag tag-yellow">therapy games</span><span class="tag tag-yellow">mental health podcast</span><span class="tag tag-yellow">behavioral psychologist</span>
+        </div>
+      </div>
+      <div class="card card-blue">
+        <h3 style="color:#2563eb">Price Mismatch</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem">
+          <span class="tag tag-blue">cheap therapist</span><span class="tag tag-blue">stress relief tips</span><span class="tag tag-blue">self help</span><span class="tag tag-blue">how to deal with</span><span class="tag tag-blue">anonymous therapy</span>
+        </div>
+      </div>
+    </div>
+    <h2>Low Performers — Cut or Fix</h2>
+    <table>
+      <thead><tr><th>Keyword</th><th>Spend</th><th>Clicks</th><th>Convs</th><th>ROAS</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td>marital counseling</td><td>$5.25</td><td>136</td><td>2</td><td style="color:#dc2626">0.38x</td><td><span class="tag tag-red">Pause</span></td></tr>
+        <tr><td>a relationship therapist</td><td>$7.61</td><td>164</td><td>3</td><td style="color:#dc2626">0.39x</td><td><span class="tag tag-red">Reduce bid</span></td></tr>
+        <tr><td>personal therapist near me</td><td>$1.49</td><td>23</td><td>0</td><td style="color:#dc2626">0x</td><td><span class="tag tag-red">Negative</span></td></tr>
+        <tr><td>behavioral psychologist</td><td>$1.12</td><td>25</td><td>0</td><td style="color:#dc2626">0x</td><td><span class="tag tag-red">Negative</span></td></tr>
+        <tr><td>cheap couples counseling</td><td>$0.47</td><td>8</td><td>0</td><td style="color:#dc2626">0x</td><td><span class="tag tag-red">Negative</span></td></tr>
+        <tr><td>therapy on the phone</td><td>$0.26</td><td>1</td><td>0</td><td style="color:#dc2626">0x</td><td><span class="tag tag-yellow">Pause</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TIMELINE -->
+  <div id="tab-timeline" class="panel">
+    <h2>Account Change History — Full Timeline</h2>
+    <div class="timeline">
+
+      <div class="tl-item">
+        <div class="tl-date">Oct 2025</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#10b981"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#10b981">
+          <div class="tl-title">Account Peak</div>
+          <div class="tl-body">PMax: 5,441 convs · 66.69x ROAS · $152 spend. Search: 580 convs · 11.36x ROAS. Best month in account history. Both campaigns optimizing for sign-ups.</div>
+          <span class="impact" style="background:#f0fdf4;color:#059669">Healthy — wrong metric but algorithm stable</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Nov 10, 2025<br>4:07–4:22 PM</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#ef4444"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#ef4444">
+          <div class="tl-title">Google Consultant Makes 4 Changes in 15 Minutes</div>
+          <div class="tl-changes">
+            <div class="tl-change">1. <span>Location targeting:</span> "People in, searching for, OR viewing pages about Kenya" → <span>"People IN Kenya only"</span> — correct fix but kills volume immediately</div>
+            <div class="tl-change">2. <span>PMax:</span> "Purchases (Website)" added as goal — confuses algorithm optimizing for sign-ups</div>
+            <div class="tl-change">3. <span>Search:</span> "Purchases (Website)" added as goal — same conflict</div>
+            <div class="tl-change">4. <span>Search budget:</span> $9 → raised to $9 (Net: no change, but note budget was already cut)</div>
+            <div class="tl-change">5. <span>Ad copy updated</span> + Business logo asset added to Search</div>
+          </div>
+          <span class="impact" style="background:#fef2f2;color:#dc2626">Triggers learning reset on both campaigns simultaneously</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Nov 17, 2025</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#f59e0b"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#f59e0b">
+          <div class="tl-title">Manager Account Linked</div>
+          <div class="tl-body">A Google Ads manager account (ID: 7116397868) is linked and activated. Likely the consultant's MCC account gaining access.</div>
+          <span class="impact" style="background:#fffbeb;color:#d97706">External management begins</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Nov 2025</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#ef4444"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#ef4444">
+          <div class="tl-title">Collapse Begins</div>
+          <div class="tl-body">PMax: 5,441 → 1,718 convs (−68%). Search: 580 → 234 convs (−60%). Both campaigns in learning period. Algorithm confused by conflicting purchase + sign-up goals with location targeting change.</div>
+          <span class="impact" style="background:#fef2f2;color:#dc2626">Account revenue impact begins</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Dec 17, 2025<br>11:12–11:13 AM</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#ef4444"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#ef4444">
+          <div class="tl-title">Both Campaigns Paused — Same Minute</div>
+          <div class="tl-body">Search paused at 11:12:40. PMax paused at 11:13:01. Complete account shutdown. All learning data and momentum lost. No explanation in change log — likely a manual pause during holiday period or budget decision.</div>
+          <span class="impact" style="background:#fef2f2;color:#dc2626">Complete learning reset — all algorithm momentum gone</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Dec 2025</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#ef4444"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#ef4444">
+          <div class="tl-title">Near-Zero Performance</div>
+          <div class="tl-body">PMax: 88 convs (from 5,441 in Oct). Search: 53 convs (from 580 in Oct). Both campaigns paused for remainder of December. Account essentially inactive.</div>
+          <span class="impact" style="background:#fef2f2;color:#dc2626">−98% PMax convs · −91% Search convs vs peak</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Jan 19, 2026<br>11:05 AM</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#f59e0b"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#f59e0b">
+          <div class="tl-title">Both Campaigns Reactivated</div>
+          <div class="tl-body">Search and PMax both re-enabled at 11:05 AM. Campaigns restart from cold — all learning from prior months gone after the December pause.</div>
+          <span class="impact" style="background:#fffbeb;color:#d97706">Learning period starts again from scratch</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Jan 19, 2026<br>2:25 PM</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#f59e0b"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#f59e0b">
+          <div class="tl-title">Target ROAS Reduced: 800% → 300%</div>
+          <div class="tl-body">PMax tROAS dropped from 800% to 300%. The original 800% target ($8 return per $1 spent on sign-ups) was too aggressive — Google couldn't find enough conversions at that threshold and throttled delivery to near zero. Reducing to 300% gives Google more bidding flexibility.</div>
+          <span class="impact" style="background:#fffbeb;color:#d97706">Partial recovery — but still optimizing for sign-ups</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Jan 29, 2026</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#06b6d4"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#06b6d4">
+          <div class="tl-title">First Purchase Conversion Created</div>
+          <div class="tl-body">"Purchase (booking.shamirihealth.com/)" created with $20 value. First attempt at real purchase tracking. Set as primary conversion — correct intent but wrong page (booking subdomain root, not /thank-you).</div>
+          <span class="impact" style="background:#ecfeff;color:#0891b2">Right idea, wrong implementation</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Feb 2, 2026</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#f59e0b"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#f59e0b">
+          <div class="tl-title">Sign-up Conversion Value Changed: $20 → $1</div>
+          <div class="tl-body">"Payment Page view" conversion value dropped from $20 to $1. This signals someone recognized the sign-up conversion was inflating value numbers. Likely done to deflate the misleading ROAS figures.</div>
+          <span class="impact" style="background:#fffbeb;color:#d97706">Collapses reported ROAS overnight</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Feb 9, 2026</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#f59e0b"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#f59e0b">
+          <div class="tl-title">First Purchase Conversion Removed</div>
+          <div class="tl-body">"Purchase (booking.shamirihealth.com/)" deleted — likely because it was tracking the wrong page or firing incorrectly. Good decision to remove a broken conversion rather than let it pollute data.</div>
+          <span class="impact" style="background:#fffbeb;color:#d97706">Cleanup — but account now has no purchase signal again</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Feb 12–17, 2026</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#f59e0b"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#f59e0b">
+          <div class="tl-title">Budget Volatility — 5 Changes in 5 Days</div>
+          <div class="tl-changes">
+            <div class="tl-change">Feb 12: PMax <span>$17 → $5</span> (cut 71%)</div>
+            <div class="tl-change">Feb 16: PMax <span>$5 → $9</span></div>
+            <div class="tl-change">Feb 17: Both campaigns <span>increased significantly</span> then reduced same day</div>
+            <div class="tl-change">Feb 18: Both campaigns <span>cut back to $9</span></div>
+          </div>
+          <span class="impact" style="background:#fffbeb;color:#d97706">Each change resets or disrupts learning period</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Feb 24, 2026<br>12:18 PM</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#10b981"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#10b981">
+          <div class="tl-title">Correct Purchase Conversion Created</div>
+          <div class="tl-body">"Purchase (Page load thank-you)" created. Correct /thank-you page. $1 value (placeholder — should be updated to real package values). Set as primary action. Data-driven attribution. This is the conversion event the account needed from day one.</div>
+          <span class="impact" style="background:#f0fdf4;color:#059669">Account now tracking real intent for first time</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Feb 24, 2026<br>12:41 PM</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#10b981"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#10b981">
+          <div class="tl-title">Budgets Increased Post-Conversion Fix</div>
+          <div class="tl-changes">
+            <div class="tl-change">Search: <span>$9 → $12/day</span></div>
+            <div class="tl-change">PMax: <span>$9 → $33/day</span></div>
+          </div>
+          <span class="impact" style="background:#f0fdf4;color:#059669">Good — but let learning stabilize 3–4 weeks before evaluating</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">Feb 25, 2026</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#6366f1"></div><div class="tl-connector"></div></div>
+        <div class="tl-content" style="--bc:#6366f1">
+          <div class="tl-title">Sign-up Conversion Demoted to Secondary</div>
+          <div class="tl-body">"Payment Page view" removed from primary conversions and set to "observe only". Correct move — the algorithm now optimizes exclusively for purchases. Sign-up data still visible for reference but no longer drives bidding.</div>
+          <span class="impact" style="background:#eff6ff;color:#2563eb">Account is now correctly configured for the first time</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-date">TODAY<br>Feb 26, 2026</div>
+        <div class="tl-line"><div class="tl-dot" style="background:#818cf8"></div></div>
+        <div class="tl-content" style="--bc:#818cf8">
+          <div class="tl-title">Current State — Day 2 of Learning</div>
+          <div class="tl-body">Both campaigns in learning period with correct purchase conversion. Low spend and low conversions are expected and normal. Do not make changes for 3–4 weeks. First real performance data available ~Mar 26, 2026.</div>
+          <span class="impact" style="background:#eff6ff;color:#2563eb">Learning period · Review date: March 26, 2026</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COLLAPSE -->
+  <div id="tab-collapse" class="panel">
+    <h2>The Collapse — Root Cause Analysis</h2>
+    <div class="alert alert-red" style="margin-bottom:1rem">
+      <strong>The sequence that destroyed 10 months of algorithm learning in 5 weeks (Oct → Dec 2025)</strong>
+    </div>
+    <div style="display:grid;gap:.6rem;margin-bottom:1rem">
+      <div class="card card-red">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:.75rem;align-items:start">
+          <div style="background:#ef4444;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0">1</div>
+          <div>
+            <div style="font-weight:700;color:#1e293b;margin-bottom:.25rem">Nov 10: Consultant adds "Purchases" goal while sign-ups still primary <span class="tag tag-red">Root Cause</span></div>
+            <p style="color:#475569;font-size:.78rem;margin:0;line-height:1.5">The algorithm had spent 10 months learning to find sign-up converters. Adding a "Purchases" goal it had never seen before — with zero historical data — meant it suddenly had two conflicting objectives. Google's Smart Bidding couldn't reconcile them. Both campaigns entered deep learning mode simultaneously.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card card-red">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:.75rem;align-items:start">
+          <div style="background:#ef4444;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0">2</div>
+          <div>
+            <div style="font-weight:700;color:#1e293b;margin-bottom:.25rem">Nov 10: Location targeting tightened same day <span class="tag tag-red">Compounding Factor</span></div>
+            <p style="color:#475569;font-size:.78rem;margin:0;line-height:1.5">Switching from "people searching about Kenya" to "people physically in Kenya" was the right long-term fix but terrible timing. It dramatically reduced the eligible auction pool overnight — from global English speakers interested in Kenya to only Kenyans. Combined with the conversion goal change, Google was now bidding for a brand new audience with a brand new conversion event simultaneously.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card card-red">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:.75rem;align-items:start">
+          <div style="background:#ef4444;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0">3</div>
+          <div>
+            <div style="font-weight:700;color:#1e293b;margin-bottom:.25rem">Dec 17: Both campaigns paused same minute <span class="tag tag-red">Kill Shot</span></div>
+            <p style="color:#475569;font-size:.78rem;margin:0;line-height:1.5">Whatever fragile recovery the algorithm was making during November was completely wiped out when both campaigns were paused on Dec 17. Pausing a Smart Bidding campaign wipes its short-term learning. Reactivating in January meant starting from zero — with a budget that had been cut, a new location targeting setup, and still-conflicting conversion goals.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card card-yellow">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:.75rem;align-items:start">
+          <div style="background:#f59e0b;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0">4</div>
+          <div>
+            <div style="font-weight:700;color:#1e293b;margin-bottom:.25rem">Jan 19: tROAS set at 800% on campaigns with zero purchase data <span class="tag tag-yellow">Consultant Error</span></div>
+            <p style="color:#475569;font-size:.78rem;margin:0;line-height:1.5">Setting an 800% Target ROAS means Google needs to return $8 for every $1 spent. With zero historical purchase conversion data and a budget of $5–9/day, this was mathematically impossible. Google responded by barely bidding at all — hence near-zero spend in Jan. Reducing to 300% on Jan 19 was the right correction but the damage from the combined changes was already done.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div>
+        <h2>Conversion Volume Collapse</h2>
+        <div class="chart-wrap"><canvas id="collapseChart"></canvas></div>
+      </div>
+      <div class="card" style="align-self:start">
+        <h3>Peak vs Trough vs Now</h3>
+        <table>
+          <thead><tr><th>Metric</th><th>Oct Peak</th><th>Dec Trough</th><th>Feb 26</th></tr></thead>
+          <tbody>
+            <tr><td>PMax Convs</td><td style="color:#059669">5,441</td><td style="color:#dc2626">88</td><td style="color:#d97706">309</td></tr>
+            <tr><td>Search Convs</td><td style="color:#059669">580</td><td style="color:#dc2626">53</td><td style="color:#d97706">81</td></tr>
+            <tr><td>PMax ROAS</td><td style="color:#059669">66.69x</td><td style="color:#dc2626">21.47x</td><td style="color:#d97706">9.05x</td></tr>
+            <tr><td>Search ROAS</td><td style="color:#059669">11.36x</td><td style="color:#dc2626">7.08x</td><td style="color:#d97706">2.50x</td></tr>
+            <tr><td>Total Spend/mo</td><td>$304</td><td>$233</td><td>$420</td></tr>
+            <tr><td>Conv Goal</td><td>Sign-ups</td><td>Confused</td><td style="color:#059669">Purchases</td></tr>
+          </tbody>
+        </table>
+        <div class="alert alert-green" style="margin-top:.75rem;font-size:.75rem">
+          Feb 26 numbers reflect the new purchase conversion — lower counts are expected and correct. A sign-up is not a purchase.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION PLAN -->
+  <div id="tab-actions" class="panel">
+    <h2>Action Plan — Prioritised</h2>
+    <div style="display:grid;gap:.6rem">
+
+      <div class="card card-red">
+        <h3 style="color:#dc2626">P1 — Do Nothing (Weeks 1–4, until ~Mar 26)</h3>
+        <p style="color:#475569;font-size:.78rem;margin:.4rem 0;line-height:1.5">The single most important action right now is inaction. Both campaigns are in learning period with the correct purchase conversion for the first time. Every change resets the clock. Set a calendar reminder for March 26 and do not touch bids, budgets, targeting, or ad copy until then. The only exception is if spend drops to zero for 5+ consecutive days.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem">
+          <span class="tag tag-red">No bid changes</span>
+          <span class="tag tag-red">No budget changes</span>
+          <span class="tag tag-red">No targeting changes</span>
+          <span class="tag tag-red">No pausing</span>
+        </div>
+      </div>
+
+      <div class="card card-yellow">
+        <h3 style="color:#d97706">P2 — Fix Conversion Value (This Week)</h3>
+        <p style="color:#475569;font-size:.78rem;margin:.4rem 0;line-height:1.5">Your purchase conversion is currently set at $1 flat value for all packages. Update to reflect real values so Google can optimize toward higher-value purchases. Either use static values per campaign or implement dynamic data layer values from your booking platform.</p>
+        <div class="tl-changes" style="margin-top:.5rem">
+          <div class="tl-change">Option A (simple): <span>Set static value = $20 (avg package value)</span> — better than $1</div>
+          <div class="tl-change">Option B (better): <span>Separate thank-you URLs per package</span> — /thank-you/session · /thank-you/bundle · /thank-you/program</div>
+          <div class="tl-change">Option C (best): <span>Data layer push with actual transaction value</span> from booking platform</div>
+        </div>
+      </div>
+
+      <div class="card card-yellow">
+        <h3 style="color:#d97706">P3 — Verify Tag is Firing (This Week)</h3>
+        <p style="color:#475569;font-size:.78rem;margin:.4rem 0;line-height:1.5">Go to booking.shamirihealth.com/thank-you in your browser. Open GTM Preview mode or Google Tag Assistant. Confirm the "Purchase (Page load thank-you)" conversion tag fires. If it shows "Unverified" in Google Ads → Tools → Conversions, no amount of waiting will help.</p>
+      </div>
+
+      <div class="card card-blue">
+        <h3 style="color:#2563eb">P4 — Week 4 Review (Mar 26)</h3>
+        <p style="color:#475569;font-size:.78rem;margin:.4rem 0;line-height:1.5">On March 26, compare actual purchase conversions between Search and PMax. This will be the first real apples-to-apples comparison in this account's history. Key questions:</p>
+        <div class="tl-changes" style="margin-top:.5rem">
+          <div class="tl-change">Which campaign has lower <span>cost per actual purchase?</span></div>
+          <div class="tl-change">What is the <span>real purchase ROAS</span> vs the fake sign-up ROAS?</div>
+          <div class="tl-change">Are purchase conversions <span>sufficient for Smart Bidding</span> (need 30–50/month)?</div>
+          <div class="tl-change">Is Search still losing <span>80%+ of IS to budget?</span> If yes — increase Search budget first</div>
+        </div>
+      </div>
+
+      <div class="card card-blue">
+        <h3 style="color:#2563eb">P5 — Month 2: Structural Fixes</h3>
+        <div class="tl-changes" style="margin-top:.4rem">
+          <div class="tl-change"><span>Split ad groups:</span> Kenya-specific / Couples / Mental Health / Online — not everything in Ad group 1</div>
+          <div class="tl-change"><span>Add exact match:</span> [therapist nairobi] [online therapy kenya] [affordable therapists nairobi] for top Kenya terms</div>
+          <div class="tl-change"><span>Add negatives:</span> free, cheap, NGO, betterhelp, meditation app, self help, how to deal with, anonymous</div>
+          <div class="tl-change"><span>Scale hidden gems:</span> Increase bids on counseling help (23.6x ROAS), i need a therapist now (13.7x), better health online (18.1x)</div>
+          <div class="tl-change"><span>Build Kenya campaign:</span> Dedicated campaign, Kenya/Nairobi keywords only, higher bids, matching landing pages</div>
+        </div>
+      </div>
+
+      <div class="card card-cyan">
+        <h3 style="color:#0891b2">P6 — Month 3+: Scale What Works</h3>
+        <div class="tl-changes" style="margin-top:.4rem">
+          <div class="tl-change">Once 30+ purchase convs/month: <span>switch to Target ROAS bidding</span> with real purchase data</div>
+          <div class="tl-change">If Search purchase CPA is competitive: <span>increase Search budget to $25–30/day</span> (currently losing 60–85% IS to budget)</div>
+          <div class="tl-change">If PMax purchase rate is strong: <span>feed it customer match list</span> (past buyer emails) as audience signal</div>
+          <div class="tl-change">Add <span>remarketing campaigns:</span> target /book-session visitors who didn't reach /thank-you</div>
+          <div class="tl-change">Consider <span>3 separate Search campaigns</span> per package (KES 2k / 3.5k / 7k) with dedicated budgets and landing pages</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-green" style="margin-top:1rem">
+      <strong>Bottom line:</strong> The account has been correctly configured as of Feb 24–25, 2026 for the first time. You now have: correct purchase conversion tracking, sign-up demoted to secondary, location set to Kenya only, and budgets increased. The learning period is the only thing standing between you and real performance data. March 26 is your first genuine decision point.
+    </div>
+  </div>
+
+</div><!-- end app -->
+
+<footer>Shamiri Health · Google Ads Analysis · Data: Jan 2025 – Feb 2026 · Generated Feb 26, 2026 · All historical conversions = sign-ups not purchases</footer>
+
+<script>
+const months = ["Jan 25","Feb 25","Mar 25","Apr 25","May 25","Jun 25","Jul 25","Aug 25","Sep 25","Oct 25","Nov 25","Dec 25","Jan 26","Feb 26"];
+const searchCost = [171.62,745.19,533.60,843.07,465.76,654.77,269.04,206.61,152.20,152.27,236.69,150.76,117.22,191.09];
+const pmaxCost = [52.24,0,0,424.50,288.44,276.05,245.02,232.91,152.56,152.10,152.54,82.31,65.31,228.72];
+const searchRoas = [1.02,1.63,2.46,3.64,3.51,2.90,4.42,4.07,7.70,11.36,7.65,7.08,7.08,2.50];
+const pmaxRoas = [7.37,0,0,11.21,26.05,20.11,27.51,46.54,53.37,66.69,37.92,21.47,25.53,9.05];
+const searchConvs = [137,952,876,1198,533,542,306,214,365,580,234,53,42,81];
+const pmaxConvs = [385,0,0,2505,3619,2939,3786,5995,4637,5441,1718,88,84,309];
+const searchCR = [5.99,6.75,9.10,9.23,11.57,10.36,12.67,15.20,18.57,33.12,15.92,4.34,6.38,8.37];
+const pmaxCR = [25.33,0,0,21.42,51.47,54.04,32.32,37.15,43.40,35.91,14.86,1.47,11.94,3.76];
+const lostIS = [54.71,40.67,37.98,39.47,76.15,34.52,62.11,73.23,79.00,89.29,83.02,78.89,84.97,59.98];
+
+const cfg = (type, labels, datasets, opts={}) => ({
+  type, data:{labels, datasets},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#475569',font:{size:11}}},tooltip:{backgroundColor:'#ffffff',titleColor:'#64748b',bodyColor:'#1e293b',borderColor:'#e2e8f0',borderWidth:1}},
+    scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#f1f5f9'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#e2e8f0'}}},...opts}
+});
+
+new Chart(document.getElementById('spendChart'), cfg('bar', months,
+  [{label:'Search $',data:searchCost,backgroundColor:'#2563eb44',borderColor:'#2563eb',borderWidth:1,borderRadius:3},
+   {label:'PMax $',data:pmaxCost,backgroundColor:'#05966944',borderColor:'#059669',borderWidth:1,borderRadius:3}]));
+
+new Chart(document.getElementById('roasChart'), cfg('line', months,
+  [{label:'Search ROAS',data:searchRoas,borderColor:'#2563eb',backgroundColor:'#2563eb18',tension:.3,pointRadius:3,fill:true},
+   {label:'PMax ROAS',data:pmaxRoas,borderColor:'#059669',backgroundColor:'#05966918',tension:.3,pointRadius:3,fill:true}]));
+
+new Chart(document.getElementById('convsChart'), cfg('bar', months,
+  [{label:'Search Convs',data:searchConvs,backgroundColor:'#2563eb44',borderColor:'#2563eb',borderWidth:1,borderRadius:3},
+   {label:'PMax Convs',data:pmaxConvs,backgroundColor:'#05966944',borderColor:'#059669',borderWidth:1,borderRadius:3}]));
+
+new Chart(document.getElementById('crChart'), cfg('line', months,
+  [{label:'Search CR%',data:searchCR,borderColor:'#2563eb',backgroundColor:'#2563eb11',tension:.3,pointRadius:3},
+   {label:'PMax CR%',data:pmaxCR,borderColor:'#059669',backgroundColor:'#05966911',tension:.3,pointRadius:3}]));
+
+new Chart(document.getElementById('isChart'), cfg('bar', months,
+  [{label:'Search Lost IS %',data:lostIS,backgroundColor:lostIS.map(v=>v>75?'#dc262644':v>50?'#d9770644':'#2563eb44'),borderColor:lostIS.map(v=>v>75?'#dc2626':v>50?'#d97706':'#2563eb'),borderWidth:1,borderRadius:3}],
+  {scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#f1f5f9'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#e2e8f0'},max:100}}}));
+
+const colMonths = ["Aug 25","Sep 25","Oct 25","Nov 25","Dec 25","Jan 26","Feb 26"];
+new Chart(document.getElementById('collapseChart'), cfg('line', colMonths,
+  [{label:'PMax Convs',data:[5995,4637,5441,1718,88,84,309],borderColor:'#059669',backgroundColor:'#05966918',tension:.3,pointRadius:4,fill:true},
+   {label:'Search Convs',data:[214,365,580,234,53,42,81],borderColor:'#2563eb',backgroundColor:'#2563eb18',tension:.3,pointRadius:4,fill:true}]));
+
+function showTab(name) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

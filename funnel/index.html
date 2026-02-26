@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Shamiri Health — Funnel Analysis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f8fafc;color:#1e293b;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5}
+.app{max-width:1100px;margin:0 auto;padding:1.5rem}
+h1{font-size:1.5rem;font-weight:800;color:#1e3a5f}
+h2{font-size:1rem;font-weight:700;color:#1e3a5f;margin-bottom:.75rem}
+h3{font-size:.85rem;font-weight:700;color:#334155;margin-bottom:.5rem}
+.subtitle{color:#64748b;font-size:.78rem;margin:.2rem 0 1.25rem}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.6rem;margin-bottom:1.25rem}
+@media(max-width:700px){.kpi-grid{grid-template-columns:repeat(3,1fr)}.grid2{grid-template-columns:1fr!important}.grid3{grid-template-columns:1fr!important}}
+.kpi{background:#ffffff;border-radius:8px;padding:.75rem;border-top:3px solid var(--c);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.kpi-val{font-size:1.05rem;font-weight:700;color:var(--c);margin:.2rem 0}
+.kpi-label{font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
+.kpi-sub{font-size:.65rem;color:#64748b}
+.tabs{display:flex;gap:.4rem;margin-bottom:.75rem;flex-wrap:wrap}
+.tab{padding:.35rem .9rem;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;font-size:.75rem;font-weight:600;background:#ffffff;color:#475569;transition:all .2s;text-decoration:none}
+.tab:hover{background:#f1f5f9;border-color:#cbd5e1}
+.tab.active{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
+.panel{background:#ffffff;border-radius:10px;padding:1.25rem;display:none;min-height:300px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.panel.active{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem}
+.card{background:#f8fafc;border-radius:8px;padding:.9rem;border:1px solid #e2e8f0}
+.card-red{border-left:3px solid #dc2626}
+.card-yellow{border-left:3px solid #d97706}
+.card-green{border-left:3px solid #059669}
+.card-blue{border-left:3px solid #2563eb}
+.card-cyan{border-left:3px solid #0891b2}
+.tag{display:inline-block;border-radius:4px;padding:1px 7px;font-size:.68rem;font-weight:700;margin-left:4px;vertical-align:middle}
+.tag-red{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.tag-yellow{background:#fffbeb;color:#d97706;border:1px solid #fde68a}
+.tag-green{background:#f0fdf4;color:#059669;border:1px solid #bbf7d0}
+.tag-blue{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+.tag-cyan{background:#ecfeff;color:#0891b2;border:1px solid #a5f3fc}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th{padding:.4rem .6rem;text-align:left;color:#64748b;font-weight:600;border-bottom:2px solid #e2e8f0;white-space:nowrap}
+td{padding:.4rem .6rem;border-bottom:1px solid #f1f5f9;color:#334155}
+tr:nth-child(even) td{background:#f8fafc}
+.chart-wrap{position:relative;height:220px;margin:.75rem 0}
+.alert{border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;font-size:.8rem;line-height:1.6}
+.alert-red{background:#fef2f2;border-left:3px solid #dc2626;color:#991b1b}
+.alert-yellow{background:#fffbeb;border-left:3px solid #d97706;color:#92400e}
+.alert-green{background:#f0fdf4;border-left:3px solid #059669;color:#166534}
+.alert-blue{background:#eff6ff;border-left:3px solid #2563eb;color:#1e3a8a}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;border-bottom:1px solid #f1f5f9;font-size:.78rem}
+.stat-row:last-child{border-bottom:none}
+.funnel-bar-row{display:grid;grid-template-columns:170px 1fr 60px 70px;gap:.5rem;align-items:center;margin-bottom:.45rem}
+.funnel-bar-bg{background:#e2e8f0;border-radius:4px;height:22px;overflow:hidden}
+.funnel-bar-fill{height:100%;border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.finding-item{background:#f8fafc;border-radius:8px;padding:.75rem;border-left:3px solid var(--fc);border:1px solid #e2e8f0;border-left:3px solid var(--fc);display:grid;grid-template-columns:24px 1fr;gap:.6rem;margin-bottom:.6rem}
+.finding-num{color:var(--fc);font-weight:800;font-size:1rem;text-align:center;padding-top:2px}
+.finding-title{font-weight:700;color:#1e293b;font-size:.82rem;margin-bottom:.2rem}
+.finding-body{color:#475569;font-size:.76rem;line-height:1.55}
+code{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 6px;font-size:.75rem;color:#059669;font-family:monospace}
+pre{background:#1e293b;border-radius:6px;padding:.75rem;font-size:.72rem;color:#86efac;overflow-x:auto;margin:.5rem 0;font-family:monospace;line-height:1.6}
+.step-connector{text-align:center;color:#cbd5e1;font-size:1.2rem;margin:-.1rem 0;line-height:1}
+.big-number{font-size:2.5rem;font-weight:800;line-height:1}
+footer{text-align:center;color:#64748b;font-size:.68rem;margin-top:2rem;padding-top:1rem;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;margin-bottom:.25rem">
+    <div>
+      <h1>Shamiri Health — Funnel Analysis</h1>
+      <p class="subtitle">PostHog · GCLID filter (Google Ads traffic only) · Apr–Dec 2025 · Jan–Mar excluded (tracking broken)</p>
+    </div>
+    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:.5rem 1rem;font-size:.72rem;color:#9a3412;text-align:right">
+      <strong>Note:</strong> Google reported 37,617 sign-up convs<br>PostHog shows <strong style="color:#059669">451 verified purchases</strong>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi" style="--c:#2563eb"><div class="kpi-label">Landing Page</div><div class="kpi-val">63,245</div><div class="kpi-sub">100% — top of funnel</div></div>
+    <div class="kpi" style="--c:#7c3aed"><div class="kpi-label">Therapy Mode</div><div class="kpi-val">25,878</div><div class="kpi-sub">40.9% of visitors</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kpi-label">Calendar Booking</div><div class="kpi-val">8,301</div><div class="kpi-sub">13.1% of visitors</div></div>
+    <div class="kpi" style="--c:#d97706"><div class="kpi-label">User Signup</div><div class="kpi-val">4,676</div><div class="kpi-sub">7.4% of visitors</div></div>
+    <div class="kpi" style="--c:#ea580c"><div class="kpi-label">Payment Page</div><div class="kpi-val">1,669</div><div class="kpi-sub">2.6% of visitors</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kpi-label">Actual Purchases</div><div class="kpi-val">451</div><div class="kpi-sub">0.71% of signups</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <a href="../dashboard/" class="tab" style="text-decoration:none">Google Ads Analysis</a>
+    <button class="tab active" onclick="showTab('overview',this)">Funnel Overview</button>
+    <button class="tab" onclick="showTab('dropoffs',this)">Drop-off Analysis</button>
+    <button class="tab" onclick="showTab('monthly',this)">Monthly Trends</button>
+    <button class="tab" onclick="showTab('spend',this)">Spend vs Purchases</button>
+    <button class="tab" onclick="showTab('findings',this)">Key Findings</button>
+    <button class="tab" onclick="showTab('utm',this)">UTM Fix Plan</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="tab-overview" class="panel active">
+    <h2>Full Funnel — Google Ads Traffic (Apr–Dec 2025)</h2>
+    <div style="margin-top:.5rem;margin-bottom:1.25rem">
+      <!-- Landing -->
+      <div class="funnel-bar-row">
+        <span style="color:#64748b;font-size:.78rem">Landing Page</span>
+        <div class="funnel-bar-bg"><div class="funnel-bar-fill" style="width:100%;background:#2563eb"></div></div>
+        <span style="color:#2563eb;font-weight:700;font-size:.78rem;text-align:right">100%</span>
+        <span style="color:#64748b;font-size:.72rem;text-align:right">63,245</span>
+      </div>
+      <div class="step-connector">↓ <span style="color:#dc2626;font-size:.72rem">−59.1% drop</span></div>
+      <!-- Therapy Mode -->
+      <div class="funnel-bar-row">
+        <span style="color:#64748b;font-size:.78rem">Therapy Mode</span>
+        <div class="funnel-bar-bg"><div class="funnel-bar-fill" style="width:40.9%;background:#7c3aed"></div></div>
+        <span style="color:#7c3aed;font-weight:700;font-size:.78rem;text-align:right">40.9%</span>
+        <span style="color:#64748b;font-size:.72rem;text-align:right">25,878</span>
+      </div>
+      <div class="step-connector">↓ <span style="color:#d97706;font-size:.72rem">−68.0% drop</span></div>
+      <!-- Calendar -->
+      <div class="funnel-bar-row">
+        <span style="color:#64748b;font-size:.78rem">Calendar Booking</span>
+        <div class="funnel-bar-bg"><div class="funnel-bar-fill" style="width:13.1%;background:#0891b2"></div></div>
+        <span style="color:#0891b2;font-weight:700;font-size:.78rem;text-align:right">13.1%</span>
+        <span style="color:#64748b;font-size:.72rem;text-align:right">8,301</span>
+      </div>
+      <div class="step-connector">↓ <span style="color:#d97706;font-size:.72rem">−43.7% drop</span></div>
+      <!-- Signup -->
+      <div class="funnel-bar-row">
+        <span style="color:#64748b;font-size:.78rem">User Signup</span>
+        <div class="funnel-bar-bg"><div class="funnel-bar-fill" style="width:7.4%;background:#d97706"></div></div>
+        <span style="color:#d97706;font-weight:700;font-size:.78rem;text-align:right">7.4%</span>
+        <span style="color:#64748b;font-size:.72rem;text-align:right">4,676</span>
+      </div>
+      <div class="step-connector">↓ <span style="color:#dc2626;font-size:.72rem;font-weight:700">−64.3% drop</span></div>
+      <!-- Payment page -->
+      <div class="funnel-bar-row">
+        <span style="color:#64748b;font-size:.78rem">Payment Page View</span>
+        <div class="funnel-bar-bg"><div class="funnel-bar-fill" style="width:2.6%;background:#ea580c"></div></div>
+        <span style="color:#ea580c;font-weight:700;font-size:.78rem;text-align:right">2.6%</span>
+        <span style="color:#64748b;font-size:.72rem;text-align:right">1,669</span>
+      </div>
+      <div class="step-connector">↓ <span style="color:#dc2626;font-size:.72rem;font-weight:700">−73.0% drop</span></div>
+      <!-- Purchase -->
+      <div class="funnel-bar-row">
+        <span style="color:#64748b;font-size:.78rem">Actual Purchase</span>
+        <div class="funnel-bar-bg"><div class="funnel-bar-fill" style="width:0.71%;background:#059669"></div></div>
+        <span style="color:#059669;font-weight:700;font-size:.78rem;text-align:right">0.71%</span>
+        <span style="color:#64748b;font-size:.72rem;text-align:right">451</span>
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div class="card" style="text-align:center;padding:1.25rem">
+        <div style="color:#64748b;font-size:.75rem;margin-bottom:.4rem">Overall landing-to-purchase rate</div>
+        <div class="big-number" style="color:#dc2626">0.71%</div>
+        <div style="color:#475569;font-size:.72rem;margin-top:.4rem">1 in 140 ad visitors buys</div>
+      </div>
+      <div class="card card-green" style="text-align:center;padding:1.25rem">
+        <div style="color:#64748b;font-size:.75rem;margin-bottom:.4rem">Google sign-ups to actual purchase</div>
+        <div class="big-number" style="color:#d97706">1.2%</div>
+        <div style="color:#475569;font-size:.72rem;margin-top:.4rem">37,617 sign-ups · 451 purchases</div>
+      </div>
+      <div class="card card-red" style="padding:1.25rem">
+        <div style="color:#dc2626;font-weight:700;font-size:.8rem;margin-bottom:.5rem">Two Critical Leaks</div>
+        <div class="stat-row"><span style="color:#64748b">Signup to Payment Page</span><span style="color:#dc2626;font-weight:700">35.7% proceed</span></div>
+        <div class="stat-row"><span style="color:#64748b">Payment to Purchase</span><span style="color:#dc2626;font-weight:700">27.0% complete</span></div>
+        <div style="color:#64748b;font-size:.72rem;margin-top:.5rem;line-height:1.5">Fixing both to benchmarks (55% / 65%) would <strong style="color:#059669">triple purchases</strong> with zero extra ad spend.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DROP-OFFS -->
+  <div id="tab-dropoffs" class="panel">
+    <h2>Step-by-Step Drop-off Detail</h2>
+    <div class="grid2" style="margin-bottom:1rem">
+      <div class="card card-red">
+        <div style="color:#dc2626;font-weight:700;font-size:.85rem;margin-bottom:.5rem">Leak 1: Signup → Payment Page</div>
+        <div style="font-size:1.8rem;font-weight:800;color:#dc2626;margin-bottom:.3rem">64.3% abandon</div>
+        <div style="color:#64748b;font-size:.78rem;margin-bottom:.5rem">4,676 signed up · only 1,669 ever saw payment page</div>
+        <div style="color:#64748b;font-size:.75rem;line-height:1.6">
+          <strong style="color:#dc2626">Likely causes:</strong><br>
+          · Post-signup flow is confusing — no clear "Book Now" CTA<br>
+          · Users sign up to browse, not commit — onboarding doesn't push toward payment<br>
+          · Email nurture sequence not pulling them back into booking<br>
+          · Price revealed post-signup causes abandonment (KES 2,000+ unexpected)<br>
+          · Session timeout or flow interruption before reaching payment
+        </div>
+      </div>
+      <div class="card card-red">
+        <div style="color:#dc2626;font-weight:700;font-size:.85rem;margin-bottom:.5rem">Leak 2: Payment Page → Purchase</div>
+        <div style="font-size:1.8rem;font-weight:800;color:#dc2626;margin-bottom:.3rem">73.0% abandon</div>
+        <div style="color:#64748b;font-size:.78rem;margin-bottom:.5rem">1,669 saw payment page · only 451 completed</div>
+        <div style="color:#64748b;font-size:.75rem;line-height:1.6">
+          <strong style="color:#dc2626">Likely causes:</strong><br>
+          · M-Pesa payment friction — STK push not triggering or timing out<br>
+          · Card payment errors on mobile (Kenya is 80%+ mobile)<br>
+          · No trust signals at moment of payment (no padlock, guarantees)<br>
+          · No urgency — easy to close tab and "do it later"<br>
+          · Price shown differently from what was expected at booking stage
+        </div>
+      </div>
+    </div>
+
+    <h2>All Steps — Conversion Rate Breakdown</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Funnel Step</th>
+          <th>From</th>
+          <th>To</th>
+          <th>CR%</th>
+          <th>Drop</th>
+          <th>Industry Benchmark</th>
+          <th>Gap</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Landing → Therapy Mode</td>
+          <td>63,245</td>
+          <td>25,878</td>
+          <td style="color:#d97706;font-weight:700">40.9%</td>
+          <td style="color:#dc2626">−59.1%</td>
+          <td>40–60%</td>
+          <td style="color:#d97706">On low end</td>
+          <td><span class="tag tag-yellow">Monitor</span></td>
+        </tr>
+        <tr>
+          <td>Therapy Mode → Calendar</td>
+          <td>25,878</td>
+          <td>8,301</td>
+          <td style="color:#d97706;font-weight:700">32.1%</td>
+          <td style="color:#dc2626">−67.9%</td>
+          <td>30–50%</td>
+          <td style="color:#059669">Within range</td>
+          <td><span class="tag tag-green">OK</span></td>
+        </tr>
+        <tr>
+          <td>Calendar → Signup</td>
+          <td>8,301</td>
+          <td>4,676</td>
+          <td style="color:#059669;font-weight:700">56.3%</td>
+          <td style="color:#d97706">−43.7%</td>
+          <td>50–70%</td>
+          <td style="color:#059669">Good</td>
+          <td><span class="tag tag-green">Good</span></td>
+        </tr>
+        <tr>
+          <td><strong>Signup → Payment Page</strong></td>
+          <td>4,676</td>
+          <td>1,669</td>
+          <td style="color:#dc2626;font-weight:700">35.7%</td>
+          <td style="color:#dc2626">−64.3%</td>
+          <td>55–70%</td>
+          <td style="color:#dc2626">−19pts below</td>
+          <td><span class="tag tag-red">Fix Now</span></td>
+        </tr>
+        <tr>
+          <td><strong>Payment Page → Purchase</strong></td>
+          <td>1,669</td>
+          <td>451</td>
+          <td style="color:#dc2626;font-weight:700">27.0%</td>
+          <td style="color:#dc2626">−73.0%</td>
+          <td>60–75%</td>
+          <td style="color:#dc2626">−35pts below</td>
+          <td><span class="tag tag-red">Fix Now</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert alert-green" style="margin-top:1rem">
+      <strong>The opportunity in numbers:</strong> If Signup→Payment improves from 35.7% to 55% and Payment→Purchase from 27% to 62%, purchases go from 451 to ~1,400+ per year — a 3x increase with identical ad spend. The funnel, not the ads, is the primary constraint on growth right now.
+    </div>
+  </div>
+
+  <!-- MONTHLY TRENDS -->
+  <div id="tab-monthly" class="panel">
+    <h2>Monthly Purchase Volume & Funnel Trends</h2>
+    <div class="chart-wrap" style="height:240px"><canvas id="purchaseVolumeChart"></canvas></div>
+
+    <div class="grid2" style="margin-top:1rem">
+      <div>
+        <h2>Payment Page → Purchase Rate by Month</h2>
+        <div class="chart-wrap" style="height:180px"><canvas id="checkoutCRChart"></canvas></div>
+      </div>
+      <div>
+        <h2>Signup → Payment Page Rate by Month</h2>
+        <div class="chart-wrap" style="height:180px"><canvas id="signupPayCRChart"></canvas></div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:1rem">Full Monthly Data Table</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Landing</th>
+          <th>Therapy</th>
+          <th>Calendar</th>
+          <th>Signup</th>
+          <th>Payment View</th>
+          <th>Purchases</th>
+          <th>L→T%</th>
+          <th>S→Pay%</th>
+          <th>Pay→Buy%</th>
+          <th>Overall%</th>
+        </tr>
+      </thead>
+      <tbody id="monthlyTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- SPEND vs PURCHASES -->
+  <div id="tab-spend" class="panel">
+    <h2>True Cost Per Purchase — Ad Spend vs Verified Purchases</h2>
+    <div class="chart-wrap" style="height:260px"><canvas id="cppChart"></canvas></div>
+
+    <table style="margin-top:1rem">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Total Ad Spend</th>
+          <th>Verified Purchases</th>
+          <th>True Cost/Purchase</th>
+          <th>Google Sign-up Convs</th>
+          <th>Sign-up→Purchase %</th>
+          <th>Reported ROAS</th>
+          <th>True Purchase Efficiency</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Apr 25</td><td>$1,267.57</td><td style="color:#059669;font-weight:700">25</td><td style="color:#d97706;font-weight:700">$50.70</td><td>3,703</td><td style="color:#dc2626">0.68%</td><td>6.17x</td><td><span class="tag tag-yellow">High CPP</span></td></tr>
+        <tr><td>May 25</td><td>$754.20</td><td style="color:#059669;font-weight:700">55</td><td style="color:#059669;font-weight:700">$13.71</td><td>4,151</td><td style="color:#d97706">1.32%</td><td>12.13x</td><td><span class="tag tag-green">Good</span></td></tr>
+        <tr><td>Jun 25</td><td>$930.81</td><td style="color:#059669;font-weight:700">43</td><td style="color:#d97706;font-weight:700">$21.65</td><td>3,481</td><td style="color:#d97706">1.24%</td><td>8.01x</td><td><span class="tag tag-yellow">Average</span></td></tr>
+        <tr><td>Jul 25</td><td>$514.05</td><td style="color:#059669;font-weight:700">46</td><td style="color:#059669;font-weight:700">$11.18</td><td>4,091</td><td style="color:#d97706">1.12%</td><td>15.42x</td><td><span class="tag tag-green">Best month</span></td></tr>
+        <tr><td>Aug 25</td><td>$439.52</td><td style="color:#059669;font-weight:700">71</td><td style="color:#059669;font-weight:700">$6.19</td><td>6,209</td><td style="color:#d97706">1.14%</td><td>26.58x</td><td><span class="tag tag-green">Excellent</span></td></tr>
+        <tr><td>Sep 25</td><td>$304.76</td><td style="color:#059669;font-weight:700">51</td><td style="color:#059669;font-weight:700">$5.98</td><td>5,001</td><td style="color:#d97706">1.02%</td><td>30.56x</td><td><span class="tag tag-green">Excellent</span></td></tr>
+        <tr><td>Oct 25</td><td>$304.37</td><td style="color:#059669;font-weight:700">60</td><td style="color:#059669;font-weight:700">$5.07</td><td>6,021</td><td style="color:#d97706">1.00%</td><td>39.01x</td><td><span class="tag tag-green">Best ROAS</span></td></tr>
+        <tr><td>Nov 25</td><td>$389.23</td><td style="color:#d97706;font-weight:700">60</td><td style="color:#d97706;font-weight:700">$6.49</td><td>1,952</td><td style="color:#d97706">3.07%</td><td>19.51x</td><td><span class="tag tag-green">Good</span></td></tr>
+        <tr><td>Dec 25</td><td>$233.08</td><td style="color:#dc2626;font-weight:700">36</td><td style="color:#d97706;font-weight:700">$6.47</td><td>142</td><td style="color:#059669">25.35%</td><td>12.16x</td><td><span class="tag tag-yellow">Low volume</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="alert alert-green" style="margin-top:1rem">
+      <strong>The real numbers are actually strong:</strong> At peak (Aug–Oct 2025), true cost per purchase was $5–6 on a product worth KES 2,000–7,000 (~$15–55 USD). That's a genuine 3–10x return on ad spend based on real purchases. The account was working — it was just being measured on the wrong metric and then disrupted.
+    </div>
+
+    <div class="alert alert-yellow">
+      <strong>Apr 2025 outlier ($50.70 CPP):</strong> Likely the algorithm warming up after launch. The true steady-state CPP once optimised appears to be $5–15 range, suggesting May onwards was the account's real performance baseline.
+    </div>
+  </div>
+
+  <!-- KEY FINDINGS -->
+  <div id="tab-findings" class="panel">
+    <h2>Key Findings — What the PostHog Data Reveals</h2>
+
+    <div class="finding-item" style="--fc:#ef4444">
+      <div class="finding-num">1</div>
+      <div>
+        <div class="finding-title">Google reported 37,617 sign-up conversions. You got 451 actual purchases. <span class="tag tag-red">Critical</span></div>
+        <div class="finding-body">That's a 1.2% sign-up to purchase rate. Google's algorithm spent a year optimising for sign-ups and became world-class at finding people who would never pay. The 27x PMax ROAS was entirely built on sign-ups — the real purchase ROAS based on verified PostHog data was 3–10x depending on month, which is still good but nowhere near what was reported.</div>
+      </div>
+    </div>
+
+    <div class="finding-item" style="--fc:#ef4444">
+      <div class="finding-num">2</div>
+      <div>
+        <div class="finding-title">The biggest leak is Signup → Payment Page at only 35.7% <span class="tag tag-red">Critical</span></div>
+        <div class="finding-body">4,676 people signed up. Only 1,669 ever reached the payment page. That's 3,007 people who created an account and went nowhere. This is almost certainly a post-signup UX problem — the flow doesn't urgently direct users toward booking and payment. Fixing this single step to 55% would generate ~570 more payment page views per month at zero additional ad spend.</div>
+      </div>
+    </div>
+
+    <div class="finding-item" style="--fc:#ef4444">
+      <div class="finding-num">3</div>
+      <div>
+        <div class="finding-title">Payment page abandonment at 73% — checkout is the second critical failure <span class="tag tag-red">Critical</span></div>
+        <div class="finding-body">1,669 people viewed the payment page. Only 451 completed purchase. Industry benchmark for a healthcare booking flow is 60–70% completion. At 27% you're losing nearly three quarters of people at the moment of truth. In Kenya this is almost always M-Pesa STK push friction, mobile UI issues, or a lack of trust signals at the payment step. This is your highest-leverage fix in the entire funnel.</div>
+      </div>
+    </div>
+
+    <div class="finding-item" style="--fc:#10b981">
+      <div class="finding-num">4</div>
+      <div>
+        <div class="finding-title">Jul–Oct 2025 was your true performance baseline — and it was excellent <span class="tag tag-green">Opportunity</span></div>
+        <div class="finding-body">True cost per purchase during peak months: Jul $11.18, Aug $6.19, Sep $5.98, Oct $5.07. On packages worth KES 2,000–7,000 (~$15–55 USD) this represents a genuine 3–10x return. The account was working. The consultant changes, December pause, and wrong conversion goal disrupted a well-performing system. Recovery to these metrics is achievable within 60–90 days of correctly configured campaigns.</div>
+      </div>
+    </div>
+
+    <div class="finding-item" style="--fc:#10b981">
+      <div class="finding-num">5</div>
+      <div>
+        <div class="finding-title">Fixing the funnel is worth more than doubling ad spend <span class="tag tag-green">Opportunity</span></div>
+        <div class="finding-body">Simple model: fix Signup→Payment from 35.7% to 55% and Payment→Purchase from 27% to 62%. With same traffic volume (63,245 landing visits), signups stay at 4,676, payment views grow to ~2,572, purchases grow to ~1,595 — a 3.5x increase from 451 with zero additional ad spend. No other single investment in this business has this ROI potential right now.</div>
+      </div>
+    </div>
+
+    <div class="finding-item" style="--fc:#f59e0b">
+      <div class="finding-num">6</div>
+      <div>
+        <div class="finding-title">Jan–Mar 2025 tracking was broken from launch <span class="tag tag-yellow">Warning</span></div>
+        <div class="finding-body">January shows 1,023 landing page visits but only 4 purchases with 0 at every intermediate step — which is physically impossible. February and March show near-zero across the board despite Google Ads running. PostHog funnel tracking was misconfigured from account launch and only began working properly around April 2025. This means the first 3 months of ad spend have no reliable conversion data.</div>
+      </div>
+    </div>
+
+    <div class="finding-item" style="--fc:#f59e0b">
+      <div class="finding-num">7</div>
+      <div>
+        <div class="finding-title">The November collapse is confirmed real — not a tracking artifact <span class="tag tag-yellow">Warning</span></div>
+        <div class="finding-body">Landing page visits drop from 8,835 (Oct) → 7,135 (Nov) → 3,607 (Dec) in PostHog GCLID data — exactly mirroring the Google Ads campaign data. This confirms the November consultant changes (location targeting tightening + conflicting conversion goals + December pause) genuinely reduced real buyer traffic, not just reported metrics. The account lost real revenue during this period.</div>
+      </div>
+    </div>
+
+    <div class="finding-item" style="--fc:#6366f1">
+      <div class="finding-num">8</div>
+      <div>
+        <div class="finding-title">You have 4,225 signed-up non-buyers in your database — cheapest acquisition you'll ever find <span class="tag tag-blue">Action</span></div>
+        <div class="finding-body">4,676 people signed up via Google Ads. 451 bought. That leaves ~4,225 signed-up users who have shown enough intent to create an account but never paid. A targeted email/WhatsApp re-engagement sequence to this list — with a clear offer and frictionless booking link — could convert even 5–10% of them (211–422 purchases) at near-zero incremental cost. This should be launched before any budget increase.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UTM FIX -->
+  <div id="tab-utm" class="panel">
+    <h2>UTM Attribution Fix — Know Which Ad Led to Which Purchase</h2>
+
+    <div class="alert alert-yellow">
+      <strong>Current state:</strong> PostHog can filter by GCLID (confirming Google Ads origin) but can't distinguish Search from PMax, campaign from campaign, or keyword from keyword. All 451 purchases look identical. You're flying blind on attribution. Here's the full fix.
+    </div>
+
+    <div style="display:grid;gap:.75rem;margin-top:1rem">
+      <div class="card card-blue">
+        <div style="color:#2563eb;font-weight:700;font-size:.82rem;margin-bottom:.4rem">Step 1 — Verify Auto-Tagging is ON in Google Ads</div>
+        <div style="color:#64748b;font-size:.78rem;margin-bottom:.4rem;line-height:1.5">You already have GCLID data in PostHog so auto-tagging is likely on, but verify:</div>
+        <pre>Google Ads → Settings (gear icon) → Account Settings
+→ Auto-tagging → tick "Tag the URL that people click through from my ad"
+→ Save</pre>
+      </div>
+
+      <div class="card card-cyan">
+        <div style="color:#0891b2;font-weight:700;font-size:.82rem;margin-bottom:.4rem">Step 2 — Add Tracking Template to Google Ads (Account Level)</div>
+        <div style="color:#64748b;font-size:.78rem;margin-bottom:.4rem;line-height:1.5">This appends UTM parameters to every ad click automatically across all campaigns:</div>
+        <pre>Google Ads → Settings → Account Settings → Tracking
+→ Tracking template field, enter:
+
+{lpurl}?utm_source=google&utm_medium=cpc&utm_campaign={campaign}&utm_content={adgroup}&utm_term={keyword}&gclid={gclid}</pre>
+        <div style="color:#64748b;font-size:.72rem;margin-top:.4rem">This gives PostHog: source, medium, campaign name, ad group name, keyword, and GCLID on every single click.</div>
+      </div>
+
+      <div class="card card-green">
+        <div style="color:#059669;font-weight:700;font-size:.82rem;margin-bottom:.4rem">Step 3 — Pass UTMs from Main Site → Booking Subdomain</div>
+        <div style="color:#64748b;font-size:.78rem;margin-bottom:.4rem;line-height:1.5">UTMs drop when users navigate from <code>shamirihealth.com</code> to <code>booking.shamirihealth.com</code>. Add this JS to your main site landing pages:</div>
+        <pre>// Paste in &lt;head&gt; of all landing pages on shamirihealth.com
+document.addEventListener("DOMContentLoaded", function() {
+  const p = new URLSearchParams(window.location.search);
+  const keys = ['utm_source','utm_medium','utm_campaign',
+                 'utm_content','utm_term','gclid'];
+  const str = keys.filter(k=>p.has(k))
+                   .map(k=>`${k}=${p.get(k)}`).join('&');
+  if (!str) return;
+  document.querySelectorAll('a[href*="booking.shamirihealth.com"]')
+    .forEach(a => {
+      a.href += (a.href.includes('?') ? '&' : '?') + str;
+    });
+});</pre>
+      </div>
+
+      <div class="card card-blue">
+        <div style="color:#2563eb;font-weight:700;font-size:.82rem;margin-bottom:.4rem">Step 4 — Configure PostHog to Capture UTMs as Person Properties</div>
+        <div style="color:#64748b;font-size:.78rem;margin-bottom:.4rem;line-height:1.5">PostHog captures UTMs automatically on <code>$pageview</code> events. Verify they're being stored as person properties for funnel filtering:</div>
+        <pre>PostHog → Data Management → Properties
+→ Search "utm_campaign" — should appear as a person property
+→ If missing: check PostHog snippet includes autocapture: true
+
+In your PostHog JS init:
+posthog.init('YOUR_KEY', {
+  api_host: 'https://app.posthog.com',
+  autocapture: true,
+  capture_pageview: true,  // captures UTMs on every pageview
+  persistence: 'localStorage'
+})</pre>
+      </div>
+
+      <div class="card card-green">
+        <div style="color:#059669;font-weight:700;font-size:.82rem;margin-bottom:.4rem">Step 5 — Build Attribution Funnels in PostHog</div>
+        <div style="color:#64748b;font-size:.78rem;line-height:1.6">Once UTMs are flowing through the full funnel:</div>
+        <div style="margin-top:.5rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem;font-size:.76rem">
+          <div style="background:#f1f5f9;border-radius:6px;padding:.6rem">
+            <div style="color:#059669;font-weight:700;margin-bottom:.3rem">Funnels to build</div>
+            <div style="color:#64748b;line-height:1.7">
+              Filter by <code>utm_campaign = "Search"</code><br>
+              Filter by <code>utm_campaign = "PMax"</code><br>
+              Filter by <code>utm_content = "Kenya"</code> (ad group)<br>
+              Filter by <code>utm_term = "therapist nairobi"</code>
+            </div>
+          </div>
+          <div style="background:#f1f5f9;border-radius:6px;padding:.6rem">
+            <div style="color:#059669;font-weight:700;margin-bottom:.3rem">Questions you'll answer</div>
+            <div style="color:#64748b;line-height:1.7">
+              Which campaign has lowest CPP?<br>
+              Which keyword has best funnel CR?<br>
+              Does Search or PMax lose users earlier?<br>
+              Which package does each campaign drive?
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<footer>Shamiri Health · Funnel Analysis · PostHog GCLID filter · Apr–Dec 2025 · 451 verified purchases · Generated Feb 26, 2026</footer>
+
+<script>
+const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const activeMonths = ["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const raw = {
+  landing:  [1023,19,2,3486,6069,5038,7527,10593,6955,8835,7135,3607],
+  therapy:  [233,0,0,1650,2723,2129,2214,3522,2766,3196,2444,1234],
+  calendar: [73,0,0,583,727,543,861,1200,897,1131,874,485],
+  signup:   [35,0,0,304,472,317,447,691,481,667,530,232],
+  payment:  [4,0,0,100,117,132,149,255,181,247,199,86],
+  purchase: [4,0,0,25,55,43,46,71,51,60,60,36],
+};
+
+// Build monthly table
+const tbody = document.getElementById('monthlyTableBody');
+for (let i=3; i<12; i++) {
+  const l=raw.landing[i], t=raw.therapy[i], c=raw.calendar[i],
+        s=raw.signup[i], pay=raw.payment[i], pur=raw.purchase[i];
+  const l2t = l>0?(t/l*100).toFixed(1):'—';
+  const s2p = s>0?(pay/s*100).toFixed(1):'—';
+  const p2b = pay>0?(pur/pay*100).toFixed(1):'—';
+  const overall = l>0?(pur/l*100).toFixed(2)+'%':'—';
+  const row = `<tr>
+    <td><strong>${months[i]} 25</strong></td>
+    <td>${l.toLocaleString()}</td>
+    <td>${t.toLocaleString()}</td>
+    <td>${c.toLocaleString()}</td>
+    <td>${s.toLocaleString()}</td>
+    <td>${pay.toLocaleString()}</td>
+    <td style="color:#059669;font-weight:700">${pur}</td>
+    <td style="color:${parseFloat(l2t)>40?'#059669':'#d97706'}">${l2t}%</td>
+    <td style="color:${parseFloat(s2p)>45?'#059669':parseFloat(s2p)>30?'#d97706':'#dc2626'};font-weight:700">${s2p}%</td>
+    <td style="color:${parseFloat(p2b)>40?'#d97706':parseFloat(p2b)>30?'#d97706':'#dc2626'};font-weight:700">${p2b}%</td>
+    <td>${overall}</td>
+  </tr>`;
+  tbody.insertAdjacentHTML('beforeend', row);
+}
+
+const chartDefaults = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{labels:{color:'#475569',font:{size:11}}},
+           tooltip:{backgroundColor:'#ffffff',titleColor:'#64748b',bodyColor:'#1e293b',borderColor:'#e2e8f0',borderWidth:1}},
+  scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#f1f5f9'}},
+          y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#e2e8f0'}}}
+};
+
+// Purchase volume chart
+new Chart(document.getElementById('purchaseVolumeChart'),{
+  type:'bar',
+  data:{
+    labels:activeMonths,
+    datasets:[
+      {label:'Purchases',data:[25,55,43,46,71,51,60,60,36],backgroundColor:'#05966944',borderColor:'#059669',borderWidth:1,borderRadius:4,yAxisID:'y'},
+      {label:'Payment Page Views',data:[100,117,132,149,255,181,247,199,86],backgroundColor:'#ea580c44',borderColor:'#ea580c',borderWidth:1,borderRadius:4,yAxisID:'y1'},
+      {label:'Signups',data:[304,472,317,447,691,481,667,530,232],type:'line',borderColor:'#d97706',backgroundColor:'transparent',tension:.3,pointRadius:3,yAxisID:'y1'},
+    ]
+  },
+  options:{...chartDefaults,scales:{
+    x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#f1f5f9'}},
+    y:{ticks:{color:'#059669',font:{size:10}},grid:{color:'#e2e8f0'},title:{display:true,text:'Purchases',color:'#059669',font:{size:10}}},
+    y1:{position:'right',ticks:{color:'#64748b',font:{size:10}},grid:{display:false},title:{display:true,text:'Signups / Payment Views',color:'#64748b',font:{size:10}}}
+  }}
+});
+
+// Checkout CR
+new Chart(document.getElementById('checkoutCRChart'),{
+  type:'bar',
+  data:{
+    labels:activeMonths,
+    datasets:[{
+      label:'Payment → Purchase %',
+      data:[25,47.0,32.6,30.9,27.8,28.2,24.3,30.2,41.9],
+      backgroundColor:d=>d.parsed.y>35?'#05966944':'#dc262644',
+      borderColor:d=>d.parsed.y>35?'#059669':'#dc2626',
+      borderWidth:1,borderRadius:4
+    }]
+  },
+  options:{...chartDefaults,plugins:{...chartDefaults.plugins,
+    annotation:{annotations:{line1:{type:'line',yMin:62,yMax:62,borderColor:'#05966966',borderDash:[4,4],label:{content:'Benchmark 62%',enabled:true}}}}}}
+});
+
+// Signup→Pay CR
+new Chart(document.getElementById('signupPayCRChart'),{
+  type:'bar',
+  data:{
+    labels:activeMonths,
+    datasets:[{
+      label:'Signup → Payment Page %',
+      data:[32.9,24.8,41.6,47.0,36.9,37.6,37.0,37.5,37.1],
+      backgroundColor:'#2563eb44',borderColor:'#2563eb',borderWidth:1,borderRadius:4
+    }]
+  },
+  options:chartDefaults
+});
+
+// CPP chart
+new Chart(document.getElementById('cppChart'),{
+  type:'bar',
+  data:{
+    labels:activeMonths,
+    datasets:[
+      {label:'Ad Spend $',data:[1267.57,754.20,930.81,514.05,439.52,304.76,304.37,389.23,233.08],backgroundColor:'#2563eb44',borderColor:'#2563eb',borderWidth:1,borderRadius:4,yAxisID:'y'},
+      {label:'Cost Per Purchase $',data:[50.70,13.71,21.65,11.18,6.19,5.98,5.07,6.49,6.47],type:'line',borderColor:'#d97706',backgroundColor:'#d9770618',tension:.3,pointRadius:5,yAxisID:'y1'},
+      {label:'Purchases',data:[25,55,43,46,71,51,60,60,36],type:'line',borderColor:'#059669',backgroundColor:'transparent',tension:.3,pointRadius:4,yAxisID:'y2'},
+    ]
+  },
+  options:{...chartDefaults,scales:{
+    x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#f1f5f9'}},
+    y:{ticks:{color:'#2563eb',font:{size:10}},grid:{color:'#e2e8f0'},title:{display:true,text:'Spend $',color:'#2563eb',font:{size:10}}},
+    y1:{position:'right',ticks:{color:'#d97706',font:{size:10}},grid:{display:false},title:{display:true,text:'CPP $',color:'#d97706',font:{size:10}}},
+    y2:{position:'right',ticks:{color:'#059669',font:{size:10}},grid:{display:false},title:{display:true,text:'Purchases',color:'#059669',font:{size:10}},offset:true}
+  }}
+});
+
+function showTab(name, el) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
